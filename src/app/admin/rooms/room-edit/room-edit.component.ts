@@ -1,13 +1,17 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, OnInit, Input, OnDestroy } from '@angular/core';
 import {Room, Layout, LayoutCapacity} from "../../../model/Room";
-import {FormBuilder, FormControl, FormGroup} from "@angular/forms";
+import {DataService} from "../../../data.service";
+import { FormResetService } from "../../../form-reset.service";
+import {Validators, FormBuilder, FormControl, FormGroup} from "@angular/forms";
+import {Router} from "@angular/router";
+import {Subscription} from 'rxjs';
 
 @Component({
   selector: 'app-room-edit',
   templateUrl: './room-edit.component.html',
   styleUrls: ['./room-edit.component.css']
 })
-export class RoomEditComponent implements OnInit {
+export class RoomEditComponent implements OnInit, OnDestroy {
 
   @Input()
   room: Room;
@@ -17,14 +21,32 @@ export class RoomEditComponent implements OnInit {
 
   roomForm : FormGroup;
 
-  constructor(private formBuilder: FormBuilder) { }
+  resetEventSubscription : Subscription;
+
+  constructor(private formBuilder: FormBuilder,
+              private router: Router,
+              private formResetService: FormResetService,
+              private dataService: DataService) { }
 
   ngOnInit(): void {
+    this.initializeForm();
+    this.resetEventSubscription = this.formResetService.resetRoomFormEvent.subscribe(
+      room => {
+        this.room = room;
+        this.initializeForm();
+      }
+    );
+  }
 
-    this.roomForm = this.formBuilder.group(
+  ngOnDestroy(): void {
+    this.resetEventSubscription.unsubscribe();
+  }
+
+  initializeForm() {
+    this.roomForm = this.formBuilder.group (
         {
-          roomName : this.room.name,
-          location : this.room.location
+          roomName : [this.room.name, Validators.required],
+          location : [this.room.location, [Validators.required, Validators.minLength(2)]]
         }
     );
 
@@ -46,7 +68,17 @@ export class RoomEditComponent implements OnInit {
       this.room.capacities.push(layoutCapacity);
     }
 
-    console.log(this.room);
+    if(this.room.id == null) {
+      this.dataService.addRoom(this.room).subscribe(
+        (next) => {
+          this.router.navigate(['admin', 'rooms'], {queryParams: {action: 'view', id: next.id}});
+      });
+    } else {
+      this.dataService.updateRoom(this.room).subscribe(
+        (next) => {
+          this.router.navigate(['admin', 'rooms'], {queryParams: {action: 'view', id: next.id}});
+      });
+    }
   }
 }
 

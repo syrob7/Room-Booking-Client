@@ -41,6 +41,30 @@ export class DataService {
     return of(newUser);
   }
 
+  updateRoom(room : Room) : Observable<Room> {
+    const orginalRoom = this.rooms.find(r => r.id === room.id);
+
+    orginalRoom.name = room.name;
+    orginalRoom.location = room.location;
+    orginalRoom.capacities = room.capacities;
+
+    return of(orginalRoom);
+  }
+
+  addRoom(newRoom : Room) : Observable<Room> {
+    let id = 0;
+    for(const room of this.rooms) {
+        if(room.id > id) {
+          id = room.id;
+        }
+    }
+
+    newRoom.id = id + 1;
+    this.rooms.push(newRoom);
+
+    return of(newRoom);
+  }
+
   constructor() {
     this.rooms = new Array<Room>();
     this.users = new Array<User>();
